@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Academic RAG Bot for Orient BlackSwan History Catalogue 2024-25. Grounded answers citing exact physical PDF pages.">
+  <title>Orient BlackSwan History Catalogue RAG Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Academic Banner / Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="logo-badge" aria-hidden="true">OBS</div>
+        <div>
+          <h1 class="app-title">Orient BlackSwan History Catalogue</h1>
+          <p class="app-subtitle">Academic RAG Assistant &bull; 2024–2025 Edition</p>
+        </div>
+      </div>
+      
+      <!-- System Health Indicator -->
+      <div class="system-status" id="system-status" role="status" aria-live="polite">
+        <span class="status-dot checking" id="status-dot"></span>
+        <span class="status-text" id="status-text">Checking backend...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Academic Container -->
+  <main class="main-container">
+    <!-- Academic Constraints Notice -->
+    <section class="constraints-card" aria-label="Academic Project Constraints">
+      <div class="constraints-header">
+        <span class="badge badge-academic">Strict Document Grounding</span>
+        <span class="doc-link">
+          Source: <a href="https://www.orientblackswan.com/pdfs/downloads/History_2024-25.pdf" target="_blank" rel="noopener noreferrer">History_2024-25.pdf &#8599;</a>
+        </span>
+      </div>
+      <p class="constraints-description">
+        This research assistant operates strictly on evidence extracted from the Orient BlackSwan History 2024–25 catalogue.
+        All answers cite the <strong>physical PDF page number</strong> and include <strong>supporting verbatim excerpts</strong>.
+        If the catalogue does not contain sufficient evidence, the system returns exactly <em>"Not found"</em> without hallucinating or consulting external web knowledge.
+      </p>
+    </section>
+
+    <!-- Query Interface -->
+    <section class="query-card">
+      <form id="rag-query-form" class="query-form" novalidate>
+        <div class="input-header">
+          <label for="question-input" class="input-label">Ask a question about the history catalogue:</label>
+          <span class="char-counter" id="char-counter">0 / 500</span>
+        </div>
+
+        <div class="input-wrapper">
+          <textarea 
+            id="question-input" 
+            name="question" 
+            rows="3" 
+            placeholder="e.g., Which books focus on Ancient Indian trade routes or Mughal administrative history?"
+            maxlength="500" 
+            required
+          ></textarea>
+        </div>
+
+        <!-- Sample Questions -->
+        <div class="sample-queries" aria-label="Suggested sample queries">
+          <span class="sample-label">Sample queries:</span>
+          <button type="button" class="chip-btn" data-query="What books are listed for Early Medieval Indian History?">Early Medieval History</button>
+          <button type="button" class="chip-btn" data-query="Who are the authors of recent monographs on Mughal history?">Mughal Monograph Authors</button>
+          <button type="button" class="chip-btn" data-query="What are the latest 2024 textbook releases in World History?">2024 World History Textbooks</button>
+          <button type="button" class="chip-btn" data-query="Does the catalogue mention Quantum Computing?">Unrelated Topic (Test "Not found")</button>
+        </div>
+
+        <div class="action-bar">
+          <div class="shortcut-tip">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit</div>
+          <button type="submit" id="submit-btn" class="submit-btn">
+            <span class="btn-text">Query Catalogue</span>
+            <span class="btn-spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Response Section -->
+    <section id="response-card" class="response-card hidden" aria-live="polite">
+      <div class="response-header">
+        <h2 class="response-title">Catalogue Evidence & Answer</h2>
+        <span id="response-status-badge" class="badge badge-success">Grounded Answer</span>
+      </div>
+
+      <!-- Question Echo -->
+      <div class="question-echo">
+        <span class="echo-label">Query:</span>
+        <span id="echo-question-text" class="echo-text"></span>
+      </div>
+
+      <!-- Answer Box -->
+      <div class="answer-box">
+        <h3 class="box-label">Answer</h3>
+        <div id="answer-content" class="answer-content"></div>
+      </div>
+
+      <!-- Citations & Excerpt Box -->
+      <div id="citations-container" class="citations-container">
+        <h3 class="box-label">Physical PDF Citations & Supporting Excerpt</h3>
+        <div id="citations-list" class="citations-list"></div>
+      </div>
+    </section>
+
+    <!-- System Diagnostics Drawer / Info -->
+    <section class="diagnostics-card">
+      <div class="diagnostics-header">
+        <h2 class="diagnostics-title">Backend Status & Readiness</h2>
+        <button id="refresh-status-btn" class="refresh-btn" type="button" title="Refresh health status">
+          &#x21bb; Refresh
+        </button>
+      </div>
+      <div class="diagnostics-grid">
+        <div class="diag-item" id="diag-fastapi">
+          <span class="diag-icon">&#9679;</span>
+          <div>
+            <div class="diag-name">FastAPI REST Server</div>
+            <div class="diag-val" id="diag-fastapi-val">Connecting...</div>
+          </div>
+        </div>
+        <div class="diag-item" id="diag-pdf">
+          <span class="diag-icon">&#9679;</span>
+          <div>
+            <div class="diag-name">Catalogue PDF (Local)</div>
+            <div class="diag-val" id="diag-pdf-val">Checking...</div>
+          </div>
+        </div>
+        <div class="diag-item" id="diag-chroma">
+          <span class="diag-icon">&#9679;</span>
+          <div>
+            <div class="diag-name">ChromaDB Vector Store</div>
+            <div class="diag-val" id="diag-chroma-val">Checking...</div>
+          </div>
+        </div>
+        <div class="diag-item" id="diag-gemini">
+          <span class="diag-icon">&#9679;</span>
+          <div>
+            <div class="diag-name">Gemini API Key</div>
+            <div class="diag-val" id="diag-gemini-val">Checking...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Academic Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <p>Orient BlackSwan History Catalogue RAG Project &bull; Academic Prototype</p>
+      <p class="footer-subtext">Built with FastAPI, LangChain, ChromaDB, Google Gemini &amp; Vanilla JavaScript</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
